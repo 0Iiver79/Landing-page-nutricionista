@@ -1,11 +1,13 @@
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 const isProduction = process.env.NODE_ENV === 'production';
+const publicDir = path.join(__dirname);
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
   .split(',')
   .map(origin => origin.trim())
@@ -27,12 +29,17 @@ app.use(cors({
       return;
     }
 
-    callback(new Error('Origem não permitida pelo CORS'));
+    callback(new Error('Origem nao permitida pelo CORS'));
   }
 }));
 
 app.use(express.json({ limit: '8kb' }));
-app.use(express.static(__dirname, {
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(publicDir, 'index.html'));
+});
+
+app.use(express.static(publicDir, {
   extensions: ['html'],
   maxAge: isProduction ? '7d' : 0,
   setHeaders(res, filePath) {
@@ -42,14 +49,16 @@ app.use(express.static(__dirname, {
   }
 }));
 
-// Cache simples em memória
-let reviewsCache = {
+const reviewsCache = {
   data: null,
   timestamp: null,
-  TTL: 6 * 60 * 60 * 1000 // 6 horas
+  TTL: 6 * 60 * 60 * 1000
 };
 
-// Função para anonimizar nomes
+function getGooglePlacesApiKey() {
+  return process.env.GOOGLE_PLACES_API_KEY || process.env.GOOGLE_API_KEY;
+}
+
 function anonymizeName(fullName) {
   if (!fullName) return 'Paciente';
   const parts = fullName.split(' ');
@@ -58,10 +67,8 @@ function anonymizeName(fullName) {
   return `${firstName} ${lastName.charAt(0)}.`;
 }
 
-// Endpoint para buscar reviews do Google Places
 app.get('/api/reviews', async (req, res) => {
   try {
-    // Verifica cache
     if (reviewsCache.data && reviewsCache.timestamp) {
       const now = Date.now();
       if (now - reviewsCache.timestamp < reviewsCache.TTL) {
@@ -70,17 +77,17 @@ app.get('/api/reviews', async (req, res) => {
     }
 
     const placeId = process.env.GOOGLE_PLACE_ID || 'ChIJS1n4d75ZzpQRinLG5WPTb_M';
-    const apiKey = process.env.GOOGLE_API_KEY;
+    const apiKey = getGooglePlacesApiKey();
 
     if (!apiKey) {
-      return res.status(500).json({ 
-        error: 'API key não configurada',
-        message: 'Configure GOOGLE_API_KEY no arquivo .env'
+      return res.status(500).json({
+        error: 'API key nao configurada',
+        message: 'Configure GOOGLE_PLACES_API_KEY no arquivo .env'
       });
     }
 
     const response = await axios.post(
-      `https://maps.googleapis.com/maps/api/place/details/json`,
+      'https://maps.googleapis.com/maps/api/place/details/json',
       {},
       {
         params: {
@@ -100,39 +107,36 @@ app.get('/api/reviews', async (req, res) => {
         time: review.time
       }));
 
-      // Atualiza cache
       reviewsCache.data = reviews;
       reviewsCache.timestamp = Date.now();
 
-      return res.json({ 
+      return res.json({
         data: reviews,
         fromCache: false,
         totalRatings: response.data.result.user_ratings_total,
         avgRating: response.data.result.rating
       });
-    } else {
-      return res.status(404).json({ error: 'Nenhuma avaliação encontrada' });
     }
 
+    return res.status(404).json({ error: 'Nenhuma avaliacao encontrada' });
   } catch (error) {
     console.error('Erro ao buscar reviews:', error.message);
-    return res.status(500).json({ 
-      error: 'Erro ao buscar avaliações',
-      message: error.message 
+    return res.status(500).json({
+      error: 'Erro ao buscar avaliacoes',
+      message: error.message
     });
   }
 });
 
-// Endpoint seguro para dados públicos do local, sem expor a API key no frontend
 app.get('/api/place', async (req, res) => {
   try {
     const placeId = process.env.GOOGLE_PLACE_ID || 'ChIJS1n4d75ZzpQRinLG5WPTb_M';
-    const apiKey = process.env.GOOGLE_API_KEY;
+    const apiKey = getGooglePlacesApiKey();
 
     if (!apiKey) {
       return res.status(500).json({
-        error: 'API key não configurada',
-        message: 'Configure GOOGLE_API_KEY no arquivo .env'
+        error: 'API key nao configurada',
+        message: 'Configure GOOGLE_PLACES_API_KEY no arquivo .env'
       });
     }
 
@@ -151,7 +155,7 @@ app.get('/api/place', async (req, res) => {
     const result = response.data.result;
 
     if (!result) {
-      return res.status(404).json({ error: 'Local não encontrado' });
+      return res.status(404).json({ error: 'Local nao encontrado' });
     }
 
     const photos = (result.photos || []).slice(0, 3).map(photo => ({
@@ -172,18 +176,18 @@ app.get('/api/place', async (req, res) => {
     console.error('Erro ao buscar dados do local:', error.message);
     return res.status(500).json({
       error: 'Erro ao buscar dados do local',
-      message: 'Não foi possível carregar as informações do Google Places'
+      message: 'Nao foi possivel carregar as informacoes do Google Places'
     });
   }
 });
 
 app.get('/api/place/photo/:reference', async (req, res) => {
   try {
-    const apiKey = process.env.GOOGLE_API_KEY;
+    const apiKey = getGooglePlacesApiKey();
     const reference = req.params.reference;
 
     if (!apiKey || !reference) {
-      return res.status(400).json({ error: 'Parâmetros inválidos' });
+      return res.status(400).json({ error: 'Parametros invalidos' });
     }
 
     const response = await axios.get(
@@ -207,12 +211,15 @@ app.get('/api/place/photo/:reference', async (req, res) => {
   }
 });
 
-// Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', cache: reviewsCache.data ? 'populated' : 'empty' });
 });
 
-app.listen(PORT, () => {
-  console.log(`Servidor seguro rodando em http://localhost:${PORT}`);
-  console.log(`Endpoint: GET http://localhost:${PORT}/api/reviews`);
-});
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`Servidor seguro rodando em http://localhost:${PORT}`);
+    console.log(`Endpoint: GET http://localhost:${PORT}/api/reviews`);
+  });
+}
+
+module.exports = app;
