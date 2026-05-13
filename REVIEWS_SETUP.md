@@ -1,272 +1,131 @@
-# Sistema de Avaliações Google Maps - Dra. Ana Beatriz
+# reviews_setup.md
 
-## 📋 Visão Geral
+# Sistema de Avaliações Google — Dra. Ana Beatriz
 
-Este sistema integra avaliações reais do Google Maps de forma segura e elegante na seção de depoimentos do site, mantendo a identidade visual premium.
+## Sobre a integração
 
-### ✨ Características
+O site utiliza integração com avaliações do Google Maps para exibir depoimentos reais de pacientes de forma dinâmica e segura, mantendo o visual alinhado com a identidade premium da marca.
 
-✅ **Segurança**: API key protegida em backend Node.js
-✅ **Performance**: Cache local temporário (12 horas)
-✅ **Privacidade**: Anonimização de nomes (LGPD)
-✅ **UX Premium**: Design integrado, "ler mais" para textos longos
-✅ **Responsivo**: Funciona perfeitamente em mobile
-✅ **Microinterações**: Hover sofisticado, transições suaves
+A implementação foi pensada para preservar desempenho, privacidade e uma experiência fluida em desktop e mobile.
 
 ---
 
-## 🚀 Instalação e Configuração
+## Como funciona
 
-### 1️⃣ Instalar Dependências Node.js
+1. O frontend faz uma requisição para `/api/reviews`
+2. O servidor consulta a Google Places API
+3. Os dados são tratados antes do envio
+4. O frontend renderiza os depoimentos dinamicamente
+
+---
+
+## Instalação
+
+### Instalar dependências
 
 ```bash
 npm install
 ```
 
-Isso instala: `express`, `cors`, `axios`, `dotenv`
+Dependências utilizadas:
 
-### 2️⃣ Configurar Variáveis de Ambiente
+* express
+* axios
+* cors
+* dotenv
+
+---
+
+## Variáveis de ambiente
 
 Crie um arquivo `.env` na raiz do projeto:
 
-```bash
-# Copiar do arquivo .env.example
-cp .env.example .env
-```
-
-Edite `.env` e adicione sua API key do Google:
-
 ```env
-# Google Places API
-GOOGLE_API_KEY=sua_chave_api_aqui
+GOOGLE_API_KEY=sua_chave_aqui
 GOOGLE_PLACE_ID=ChIJS1n4d75ZzpQRinLG5WPTb_M
 
-# Configuração
 PORT=3001
 NODE_ENV=production
 ```
 
-### 3️⃣ Obter API Key Google
+---
 
-1. Acesse [Google Cloud Console](https://console.cloud.google.com/)
-2. Crie um novo projeto
-3. Ative a API: **Places API**
-4. Vá para **Credenciais** → **Criar Credencial** → **Chave de API**
-5. Copie a chave e cole no `.env`
+## Configuração da API Google
 
-### 4️⃣ Iniciar o Servidor
+1. Acesse o Google Cloud Console
+2. Ative a Places API
+3. Gere uma chave de API
+4. Adicione a chave no arquivo `.env`
+
+---
+
+## Executando localmente
 
 ```bash
 npm start
 ```
 
-Você verá:
-```
-✅ Servidor seguro rodando em http://localhost:3001
-📍 Endpoint: GET http://localhost:3001/api/reviews
+Servidor:
+
+```bash
+http://localhost:3001
 ```
 
-### 5️⃣ Testar a Integração
+Endpoint:
 
-O frontend carregará as avaliações automaticamente:
-- Busca do endpoint `/api/reviews`
-- Cache local por 12 horas
-- Atualiza o carrossel dinamicamente
+```bash
+GET /api/reviews
+```
 
 ---
 
-## 🔐 Segurança
+## Segurança
 
-### Por que Backend?
+A chave da API não fica exposta no frontend.
 
-A API key do Google **NUNCA** deve estar exposta no frontend. Este sistema:
+O backend atua como intermediador entre o site e a Google Places API, permitindo:
 
-✅ Mantém a chave segura no servidor Node.js
-✅ Proxy seguro para requisições da API
-✅ Cache inteligente (evita limite de requisições)
-✅ Anonimiza dados dos usuários
+* proteção da chave
+* controle das requisições
+* cache local temporário
+* redução de chamadas desnecessárias
 
-### LGPD / Privacidade
+Adicione o `.env` ao `.gitignore`:
 
-- ✅ Nomes anonimizados (ex: "Maria S." instead of "Maria Silva")
-- ✅ Sem armazenamento de dados pessoais
-- ✅ Apenas consumo temporário e renderização
-- ✅ Respeita limites da API Google
+```gitignore
+.env
+```
 
 ---
 
-## 📱 Features Implementadas
+## Privacidade
 
-### 1️⃣ Carregamento Seguro
+* Nenhuma informação é armazenada permanentemente
+* Os dados são utilizados apenas para exibição das avaliações
+* Nomes podem ser parcialmente abreviados quando necessário
+
+---
+
+## Recursos implementados
+
+* Cache local temporário para reduzir requisições repetidas
+* Expansão de textos longos com opção de “Ler mais”
+* Microinterações suaves nos cards
+* Renderização dinâmica das avaliações
+* Compatibilidade com desktop e mobile
+
+---
+
+## Deploy
+
+Após publicar o backend, atualize a URL da requisição no frontend:
 
 ```javascript
-// Frontend busca do backend seguro
-fetch('http://localhost:3001/api/reviews')
-```
-
-### 2️⃣ Cache Local (12h)
-
-```javascript
-// Armazena no localStorage para evitar chamadas excessivas
-localStorage.setItem('gmaps_reviews_cache', reviews)
-```
-
-### 3️⃣ Sistema "Ler Mais"
-
-- Textos truncados em 280 caracteres
-- Botão elegante "Ler mais / Ler menos"
-- Transição suave
-- Mantém design premium
-
-### 4️⃣ Anonimização de Nomes
-
-```javascript
-// "Maria da Silva" → "Maria S."
-function anonymizeName(fullName) {
-  const parts = fullName.split(' ');
-  const firstName = parts[0];
-  const lastName = parts[parts.length - 1];
-  return `${firstName} ${lastName.charAt(0)}.`;
-}
-```
-
-### 5️⃣ Microinterações
-
-- Hover sofisticado no card
-- Transições suaves (cubic-bezier)
-- Elevação do card ao hover
-- Animação de entrada fade + slide
-
----
-
-## 🎨 Design & UX
-
-### Estrelas
-
-- Renderizadas dinamicamente (1-5 ⭐)
-- Cor premium: #C8A45A (ouro suave)
-- Alinhadas com design existente
-
-### Textos
-
-- Italic suave, typography premium
-- Quase-black para melhor legibilidade
-- Anonimização respeitosa
-
-### Cards
-
-- Fundo branco limpo
-- Sombra sofisticada
-- Border suave
-- Espaçamento aéreo
-
----
-
-## 🔧 Troubleshooting
-
-### ❌ "API key não configurada"
-
-```
-✓ Verifique se o arquivo .env existe
-✓ Confirme que GOOGLE_API_KEY está preenchida
-✓ Reinicie o servidor (npm start)
-```
-
-### ❌ "Erro ao buscar avaliações"
-
-```
-✓ Verifique a API Key (pode estar expirada)
-✓ Confirme que Places API está ativada
-✓ Verifique limite de requisições (quotas)
-✓ Check console do navegador (DevTools)
-```
-
-### ❌ Carrossel não atualiza
-
-```
-✓ Verifique se o servidor está rodando (porta 3001)
-✓ Abra DevTools → Console → veja logs
-✓ Limpe cache (Ctrl+Shift+Del)
-✓ Recarregue a página (Ctrl+F5)
-```
-
----
-
-## 📊 Limites da API Google
-
-- **5 reviews** por requisição (máximo)
-- **Quota**: Consulte seu plano na Google Cloud
-- **Rate limit**: Respeitado automaticamente
-- **Cache**: 12 horas (reduz chamadas)
-
----
-
-## 🚢 Deploy
-
-### Para Produção
-
-1. Gere chave de API restrita (apenas Places API)
-2. Implante o servidor Node.js (Heroku, Railway, etc)
-3. Atualize URL no `script.js`:
-
-```javascript
-// Antes (local):
-fetch('http://localhost:3001/api/reviews')
-
-// Depois (produção):
 fetch('https://sua-api.com/api/reviews')
 ```
 
-### Exemplo com Vercel (recomendado para Node.js)
-
-```bash
-npm install -g vercel
-vercel
-```
-
 ---
 
-## 📝 Arquivo .env
+## Considerações finais
 
-**⚠️ IMPORTANTE: Nunca commit o `.env` no Git!**
-
-```
-# .env (local, não versionar)
-GOOGLE_API_KEY=<SUA_CHAVE_GOOGLE_API>
-GOOGLE_PLACE_ID=ChIJS1n4d75ZzpQRinLG5WPTb_M
-PORT=3001
-NODE_ENV=development
-```
-
-```
-# .env.example (versionar, exemplo)
-GOOGLE_API_KEY=sua_chave_api_aqui
-GOOGLE_PLACE_ID=ChIJS1n4d75ZzpQRinLG5WPTb_M
-PORT=3001
-NODE_ENV=production
-```
-
----
-
-## 🎯 Próximos Passos
-
-- ✅ Testar localmente
-- ✅ Validar cache
-- ✅ Testar "Ler mais"
-- ✅ Verificar responsivo (mobile)
-- ✅ Deploy para produção
-- ✅ Monitorar quotas da API
-
----
-
-## 📧 Suporte
-
-Qualquer dúvida sobre a integração, verifique:
-1. [Google Places API Docs](https://developers.google.com/maps/documentation/places)
-2. Console do navegador (DevTools)
-3. Logs do servidor Node.js
-
----
-
-**Design by:** Dra. Ana Beatriz
-**Premium Wellness Nutrition** ✨
+A integração foi desenvolvida para manter segurança da API, boa performance e consistência visual sem comprometer a experiência do usuário.
