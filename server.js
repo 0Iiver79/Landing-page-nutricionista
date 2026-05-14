@@ -43,7 +43,7 @@ app.use(express.static(publicDir, {
   extensions: ['html'],
   maxAge: isProduction ? '7d' : 0,
   setHeaders(res, filePath) {
-    if (filePath.endsWith('.html')) {
+    if (/\.(html|css|js)$/i.test(filePath)) {
       res.setHeader('Cache-Control', 'no-cache');
     }
   }
