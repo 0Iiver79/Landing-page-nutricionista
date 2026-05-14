@@ -8,12 +8,7 @@
   ],
   "functions": {
     "server.js": {
-      "includeFiles": [
-        "index.html",
-        "style.css",
-        "script.js",
-        "img/**"
-      ]
+      "includeFiles": "{index.html,style.css,script.js,img/**}"
     }
   },
   "routes": [
