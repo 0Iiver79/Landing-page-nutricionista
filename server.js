@@ -7,7 +7,7 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 const isProduction = process.env.NODE_ENV === 'production';
-const publicDir = path.join(__dirname);
+const publicDir = path.join(__dirname, "public");
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
   .split(',')
   .map(origin => origin.trim())
@@ -18,25 +18,16 @@ app.disable('x-powered-by');
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  res.setHeader('Permissions-Policy', 'geolocation=(), camera=(), microphone=()');
+  res.setHeader('Permissions-Policy', 'geolocation=(self), camera=(), microphone=()');
   next();
 });
 
-app.use(cors({
-  origin(origin, callback) {
-    if (!isProduction || !origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-      return;
-    }
-
-    callback(new Error('Origem nao permitida pelo CORS'));
-  }
-}));
+app.use(cors());
 
 app.use(express.json({ limit: '8kb' }));
 
 app.get('/', (req, res) => {
-  res.sendFile(path.join(publicDir, 'index.html'));
+  res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
 app.use(express.static(publicDir, {
@@ -86,9 +77,8 @@ app.get('/api/reviews', async (req, res) => {
       });
     }
 
-    const response = await axios.post(
+    const response = await axios.get(
       'https://maps.googleapis.com/maps/api/place/details/json',
-      {},
       {
         params: {
           place_id: placeId,
